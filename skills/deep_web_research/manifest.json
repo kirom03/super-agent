@@ -1,0 +1,10 @@
+{
+  "name": "deep_web_research",
+  "version": "1.0.0",
+  "displayName": "Deep Web Researcher",
+  "description": "Multi-hop internet investigation, fact-checking, technical doc synthesis, and report compiling.",
+  "category": "research",
+  "author": "Super Agent Core",
+  "risk": "low",
+  "permissions": ["network:http", "filesystem:write"]
+}

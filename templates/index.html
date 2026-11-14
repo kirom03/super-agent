@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SUPER AGENT // Neural Matrix Dashboard</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Marked.js for Markdown -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
+  <!-- Highlight.js for Code Highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Custom Cyberpunk Styles -->
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body class="flex flex-col h-screen overflow-hidden text-slate-100 antialiased select-none">
+
+  <!-- TOP HEADER HUD -->
+  <header class="border-b border-slate-800/80 bg-slate-950/90 px-6 py-2.5 flex items-center justify-between z-20 backdrop-blur-md">
+    <!-- Brand / Title -->
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-400 via-indigo-600 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+        <i class="fa-solid fa-atom text-white text-lg animate-spin" style="animation-duration: 12s;"></i>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="text-base font-extrabold tracking-wider bg-gradient-to-r from-cyan-400 via-teal-300 to-fuchsia-400 bg-clip-text text-transparent">
+            SUPER AGENT
+          </h1>
+          <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-700/80 text-cyan-300 tracking-wider">
+            VS CODE // 9ROUTER
+          </span>
+        </div>
+        <p class="text-[11px] text-slate-400 font-mono">Autonomous Internet & Laptop Super-System</p>
+      </div>
+    </div>
+
+    <!-- 9Router & VS Code Telemetry Controls -->
+    <div class="flex items-center space-x-3 text-xs">
+      
+      <!-- 9Router Model Switcher -->
+      <div class="flex items-center space-x-2 bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-1.5 shadow-inner">
+        <i class="fa-solid fa-brain text-fuchsia-400"></i>
+        <span class="text-slate-400 font-mono text-[11px]">Model:</span>
+        <select id="routerModelSelect" onchange="handleModelChange(event)" class="bg-slate-950 text-cyan-300 text-xs font-mono font-bold rounded px-2 py-0.5 border border-slate-700 focus:outline-none focus:border-cyan-400 cursor-pointer">
+          <option value="ag/gemini-3.8-flash-low">Loading models...</option>
+        </select>
+      </div>
+
+      <!-- 9Router Status Pill -->
+      <div class="flex items-center space-x-2 bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-1.5">
+        <span id="routerStatusBadge" class="flex items-center font-mono font-medium text-emerald-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span> 9Router
+        </span>
+        <span class="text-slate-600">|</span>
+        <span id="routerLatency" class="font-mono text-cyan-400 text-[11px]">-- ms</span>
+      </div>
+
+      <!-- VS Code Status Badge -->
+      <div id="vscodeStatusBadge" class="flex items-center bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-1.5 font-mono text-slate-300">
+        <i class="fa-solid fa-code text-blue-400 mr-1.5"></i> VS Code
+      </div>
+
+      <!-- Battery Indicator -->
+      <div id="batteryStatus" class="flex items-center bg-slate-900/90 border border-slate-700/80 rounded-xl px-2.5 py-1.5 font-mono text-slate-300">
+        <i class="fa-solid fa-battery-full text-emerald-400 mr-1"></i> 100%
+      </div>
+
+      <!-- Quick Command Palette Button -->
+      <button onclick="toggleCommandPalette()" title="Command Palette (Ctrl+K)" class="flex items-center space-x-1.5 bg-gradient-to-r from-cyan-950 to-slate-900 border border-cyan-500/40 hover:border-cyan-400 px-3 py-1.5 rounded-xl font-mono text-cyan-300 transition shadow-sm hover:shadow-cyan-500/20 cursor-pointer">
+        <i class="fa-solid fa-terminal text-xs text-cyan-400"></i>
+        <span class="text-[11px] font-semibold">Commands</span>
+        <kbd class="text-[9px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700 font-sans">Ctrl+K</kbd>
+      </button>
+
+      <!-- Panel Toggle Controls -->
+      <div class="flex items-center space-x-1 bg-slate-900/90 border border-slate-700/80 rounded-xl p-1">
+        <button id="btnToggleLeft" onclick="toggleLeftPanel()" title="Toggle Panel Kiri (Hardware HUD)" class="w-7 h-7 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800 flex items-center justify-center transition">
+          <i class="fa-solid fa-table-columns"></i>
+        </button>
+        <button id="btnToggleRight" onclick="toggleRightPanel()" title="Toggle Panel Kanan (Visual / Preview)" class="w-7 h-7 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800 flex items-center justify-center transition">
+          <i class="fa-solid fa-chart-line"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN 3-COLUMN TACTICAL GRID -->
+  <div class="flex-1 flex overflow-hidden relative">
+
+    <!-- COLUMN 1: HARDWARE TELEMETRY & SANDBOX (LEFT 72) -->
+    <aside id="leftSidebar" class="sidebar-panel w-80 shrink-0 border-r border-slate-800/80 bg-slate-950/60 p-4 flex flex-col space-y-4 overflow-y-auto">
+      
+      <!-- Laptop Hardware HUD -->
+      <div class="glass-panel rounded-2xl p-4 shadow-xl">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center">
+            <i class="fa-solid fa-microchip mr-2 text-cyan-400"></i> Laptop Hardware
+          </h2>
+          <span class="text-[10px] text-slate-500 font-mono">Real-Time</span>
+        </div>
+
+        <!-- CPU Gauge -->
+        <div class="space-y-1 mb-3">
+          <div class="flex justify-between text-xs font-mono">
+            <span class="text-slate-400">CPU Usage</span>
+            <span id="cpuGaugeVal" class="text-cyan-400 font-bold">0%</span>
+          </div>
+          <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
+            <div id="cpuProgressBar" class="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- RAM Gauge -->
+        <div class="space-y-1 mb-3">
+          <div class="flex justify-between text-xs font-mono">
+            <span class="text-slate-400">RAM Usage</span>
+            <span id="ramGaugeVal" class="text-purple-400 font-bold">0%</span>
+          </div>
+          <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
+            <div id="ramProgressBar" class="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+            <span>Memory Allocated</span>
+            <span id="ramGaugeDetail">-- / -- GB</span>
+          </div>
+        </div>
+
+        <!-- Disk Partitions -->
+        <div class="space-y-1.5">
+          <span class="text-[11px] text-slate-400 font-mono">Storage Partitions:</span>
+          <div id="diskList" class="space-y-1"></div>
+        </div>
+      </div>
+
+      <!-- IoT Hardware & Microcontroller Center -->
+      <div class="glass-panel rounded-2xl p-4 shadow-xl">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xs font-bold text-pink-300 uppercase tracking-wider flex items-center">
+            <i class="fa-solid fa-satellite-dish mr-2 text-pink-400"></i> IoT & Serial COM
+          </h2>
+          <button onclick="scanSerialPorts()" class="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center font-mono">
+            <i class="fa-solid fa-arrows-rotate mr-1"></i> Scan
+          </button>
+        </div>
+
+        <!-- Active Serial Ports List -->
+        <div id="serialPortList" class="space-y-1 font-mono mb-3">
+          <span class="text-slate-500 text-[11px] italic">Klik scan untuk deteksi USB mikrokontroler.</span>
+        </div>
+
+        <!-- Quick MQTT Switches -->
+        <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+          <div class="flex justify-between items-center mb-1.5">
+            <span class="text-[11px] text-slate-400 font-mono">MQTT Smart Relay</span>
+            <span class="text-[10px] font-mono text-emerald-400">HiveMQ</span>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button onclick="quickMqtt('super_agent/laptop/relay', 'ON')" class="py-1 rounded bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold">
+              <i class="fa-solid fa-bolt mr-1"></i> Relay ON
+            </button>
+            <button onclick="quickMqtt('super_agent/laptop/relay', 'OFF')" class="py-1 rounded bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-semibold">
+              <i class="fa-solid fa-power-off mr-1"></i> Relay OFF
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sandbox Artifacts Explorer -->
+      <div class="glass-panel rounded-2xl p-4 shadow-xl flex-1 flex flex-col min-h-[160px]">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center">
+            <i class="fa-solid fa-folder-tree mr-2 text-amber-400"></i> Workspace Sandbox
+          </h2>
+          <button onclick="fetchSandboxFiles()" class="text-slate-400 hover:text-white text-xs">
+            <i class="fa-solid fa-rotate"></i>
+          </button>
+        </div>
+        <div id="sandboxFileList" class="flex-1 overflow-y-auto space-y-1 pr-1 font-mono text-xs">
+          <span class="text-slate-500 italic text-[11px]">Memuat file sandbox...</span>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- COLUMN 2: REAC ENGINE & STREAMING CHAT (CENTER) -->
+    <main class="flex-1 flex flex-col bg-slate-950/80 min-w-0">
+
+      <!-- Stream Message Feed -->
+      <div id="chatStream" class="flex-1 overflow-y-auto p-6 space-y-4">
+        
+        <!-- Welcome Hero Banner -->
+        <div class="glass-panel p-6 rounded-3xl border border-cyan-500/30 max-w-3xl shadow-2xl">
+          <div class="flex items-start space-x-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-400 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-cyan-500/20">
+              <i class="fa-solid fa-brain text-white text-xl"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white mb-1">
+                Selamat Datang di <span class="bg-gradient-to-r from-cyan-400 via-teal-300 to-fuchsia-400 bg-clip-text text-transparent">Super Agent</span>!
+              </h3>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                Super Agent terhubung langsung dengan <strong>VS Code</strong> dan ditenagai oleh <strong>9Router</strong> pada laptop Anda. Mampu mengeksekusi riset internet langsung, menulis aplikasi, mengontrol file lokal, menjalankan terminal PowerShell, serta memonitor hardware & IoT.
+              </p>
+              
+              <!-- Quick Prompt Buttons -->
+              <div class="mt-4 flex flex-wrap gap-2 text-xs">
+                <button onclick="sendQuickPrompt('Cek spesifikasi hardware dan beban kerja laptop saya sekarang')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/30 transition flex items-center">
+                  <i class="fa-solid fa-gauge mr-1.5"></i> Cek Hardware Laptop
+                </button>
+                <button onclick="sendQuickPrompt('Riset di internet tentang fitur terbaru 9Router dan AI router modern, lalu rangkum')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-teal-300 border border-teal-500/30 transition flex items-center">
+                  <i class="fa-solid fa-globe mr-1.5"></i> Riset Web 9Router
+                </button>
+                <button onclick="sendQuickPrompt('Buatkan aplikasi web kalkulator sains interaktif lengkap dengan HTML, CSS animasi, dan JS ke sandbox, lalu tampilkan di live preview')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-fuchsia-300 border border-fuchsia-500/30 transition flex items-center">
+                  <i class="fa-solid fa-laptop-code mr-1.5"></i> Buat Aplikasi Web
+                </button>
+                <button onclick="sendQuickPrompt('Scan port USB mikrokontroler di laptop ini apakah ada Arduino atau ESP32')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-pink-300 border border-pink-500/30 transition flex items-center">
+                  <i class="fa-solid fa-microchip mr-1.5"></i> Scan USB COM
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- User Input Prompt Dock -->
+      <div class="p-4 border-t border-slate-800/80 bg-slate-950/90 backdrop-blur-md">
+        <!-- Image Preview Container -->
+        <div id="imagePreviewContainer" class="max-w-4xl mx-auto mb-2 hidden flex items-center gap-3 overflow-x-auto pb-1"></div>
+
+        <form id="chatForm" class="max-w-4xl mx-auto flex items-center space-x-3">
+          
+          <button type="button" onclick="resetSession()" title="Reset Sesi" class="px-3.5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
+
+          <!-- Upload / Screenshot Button -->
+          <input type="file" id="imageFileInput" accept="image/*" multiple class="hidden" onchange="handleImageFileSelect(event)" />
+          <button type="button" onclick="document.getElementById('imageFileInput').click()" title="Kirim Screenshot / Unggah Gambar (Bisa juga Paste Ctrl+V)" class="px-3.5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-cyan-400 hover:text-cyan-300 border border-slate-800 transition relative">
+            <i class="fa-solid fa-image"></i>
+            <span id="imageCountBadge" class="hidden absolute -top-1.5 -right-1.5 w-5 h-5 bg-gradient-to-r from-pink-500 to-fuchsia-600 rounded-full text-[10px] font-bold text-white flex items-center justify-center border-2 border-slate-950 shadow"></span>
+          </button>
+
+          <div class="flex-1 relative">
+            <input
+              type="text"
+              id="userInput"
+              placeholder="Perintahkan Super Agent (Paste screenshot Ctrl+V atau ketik perintah)..."
+              class="w-full bg-slate-900/90 border border-slate-700/80 rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 text-slate-100 placeholder-slate-500 shadow-inner font-sans"
+              autocomplete="off"
+            />
+          </div>
+
+          <button
+            type="submit"
+            id="sendBtn"
+            class="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-500 to-fuchsia-600 hover:from-cyan-400 hover:to-fuchsia-500 text-white font-bold text-sm transition shadow-lg shadow-cyan-500/25 flex items-center space-x-2 shrink-0 cursor-pointer"
+          >
+            <span>Kirim</span>
+            <i class="fa-solid fa-paper-plane text-xs"></i>
+          </button>
+
+        </form>
+      </div>
+
+    </main>
+
+    <!-- COLUMN 3: VISUALIZATION CANVAS & LIVE PREVIEW (RIGHT) -->
+    <section id="rightSidebar" class="sidebar-panel w-1/3 shrink-0 border-l border-slate-800/80 bg-slate-950/90 flex flex-col overflow-hidden">
+      
+      <!-- Tab Controls Header -->
+      <div class="border-b border-slate-800/80 bg-slate-900/60 p-2.5 flex items-center justify-between overflow-x-auto">
+        <div class="flex items-center space-x-1.5 shrink-0">
+          <button id="tabDag" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+            <i class="fa-solid fa-diagram-project mr-1"></i> DAG Graph
+          </button>
+          <button id="tabPreview" class="px-2.5 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white">
+            <i class="fa-solid fa-eye mr-1"></i> Preview
+          </button>
+          <button id="tabSkills" class="px-2.5 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white">
+            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Skills
+          </button>
+          <button id="tabScheduler" class="px-2.5 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white">
+            <i class="fa-solid fa-clock mr-1"></i> Tasks
+          </button>
+          <button id="tabCode" class="px-2.5 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white">
+            <i class="fa-solid fa-code mr-1"></i> Inspector
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab Content Area -->
+      <div class="flex-1 relative overflow-hidden">
+        
+        <!-- PANE 1: INTERACTIVE NEURAL DAG GRAPH -->
+        <div id="paneDag" class="w-full h-full">
+          <div id="dagCanvasContainer"></div>
+        </div>
+
+        <!-- PANE 2: LIVE WEB / SANDBOX APP PREVIEW (IFRAME) -->
+        <div id="panePreview" class="hidden w-full h-full flex flex-col bg-slate-950">
+          <!-- Browser URL Bar -->
+          <div class="bg-slate-900 px-3 py-2 border-b border-slate-800 flex items-center justify-between text-xs font-mono">
+            <span id="previewUrlLabel" class="text-slate-400 truncate max-w-xs">http://localhost:7860/sandbox/...</span>
+            <div class="flex items-center space-x-2">
+              <button onclick="document.getElementById('previewFrame').src += ''" class="text-cyan-400 hover:text-white" title="Reload Frame">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+              <button onclick="window.open(document.getElementById('previewFrame').src, '_blank')" class="text-slate-400 hover:text-white" title="Buka di Tab Baru">
+                <i class="fa-solid fa-external-link"></i>
+              </button>
+            </div>
+          </div>
+          <!-- Sandbox Iframe -->
+          <iframe id="previewFrame" class="flex-1 w-full h-full bg-white border-0" src="about:blank"></iframe>
+        </div>
+
+        <!-- PANE: SKILLS & VIRTUAL HARDWARE LAB -->
+        <div id="paneSkills" class="hidden w-full h-full flex flex-col bg-slate-950 p-4 overflow-y-auto space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div>
+              <h3 class="text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center">
+                <i class="fa-solid fa-wand-magic-sparkles mr-2 text-cyan-400"></i> Active Skills Hub
+              </h3>
+              <p class="text-[11px] text-slate-500 font-mono">Declarative agent plugins with manifest.json</p>
+            </div>
+            <button onclick="fetchSkills()" class="text-xs text-slate-400 hover:text-white"><i class="fa-solid fa-rotate"></i></button>
+          </div>
+          <div id="skillsContainer" class="space-y-2.5"></div>
+
+          <!-- Virtual ESP32 Hardware Simulator Card -->
+          <div class="glass-panel p-3.5 rounded-xl border border-pink-500/30 mt-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-pink-300 font-mono flex items-center">
+                <i class="fa-solid fa-microchip mr-1.5 text-pink-400"></i> Virtual ESP32 Simulator
+              </span>
+              <button id="toggleSimulatorBtn" onclick="toggleVirtualSimulator()" class="px-2.5 py-1 rounded text-[11px] font-bold bg-pink-600/20 hover:bg-pink-600/30 text-pink-300 border border-pink-500/40">
+                Start Node
+              </button>
+            </div>
+            <div id="simulatorTelemetry" class="text-[11px] font-mono text-slate-400 space-y-1">
+              <div>Status: <span id="simStatus" class="text-slate-500">STOPPED</span></div>
+              <div>Relay State: <span id="simRelay" class="text-slate-300">OFF</span></div>
+              <div>Sensors: <span id="simSensors" class="text-cyan-300">Temp: -- °C | Hum: -- %</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANE: TASK SCHEDULER & CRON JOBS -->
+        <div id="paneScheduler" class="hidden w-full h-full flex flex-col bg-slate-950 p-4 overflow-y-auto space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div>
+              <h3 class="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center">
+                <i class="fa-solid fa-clock mr-2 text-amber-400"></i> Autonomous Task Scheduler
+              </h3>
+              <p class="text-[11px] text-slate-500 font-mono">Recurring agent jobs & background monitors</p>
+            </div>
+            <button onclick="fetchScheduledTasks()" class="text-xs text-slate-400 hover:text-white"><i class="fa-solid fa-rotate"></i></button>
+          </div>
+          <div id="tasksContainer" class="space-y-2.5"></div>
+        </div>
+
+        <!-- PANE 3: CODE & FILE INSPECTOR -->
+        <div id="paneCode" class="hidden w-full h-full flex flex-col bg-slate-950 p-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+            <span id="codeFileName" class="text-xs font-mono font-bold text-cyan-300">Pilih file untuk inspeksi</span>
+            <button onclick="openInVSCode(document.getElementById('codeFileName').textContent)" class="px-2.5 py-1 rounded bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-xs font-mono">
+              <i class="fa-solid fa-code mr-1"></i> Buka di VS Code
+            </button>
+          </div>
+          <pre class="flex-1 overflow-auto rounded-xl bg-slate-900 p-4 text-xs font-mono"><code id="codeViewerContent" class="language-javascript">// Klik file di panel Sandbox untuk melihat isi kode di sini</code></pre>
+        </div>
+
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- Command Palette Modal (Ctrl + K) -->
+  <div id="cmdPaletteModal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-24 px-4 transition-all" onclick="if(event.target===this) toggleCommandPalette()">
+    <div class="glass-panel w-full max-w-xl rounded-2xl border border-cyan-500/40 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="p-3.5 border-b border-slate-800 flex items-center space-x-3 bg-slate-900/90">
+        <i class="fa-solid fa-magnifying-glass text-cyan-400"></i>
+        <input 
+          id="cmdPaletteInput"
+          type="text" 
+          placeholder="Cari perintah atau ketik aksi cepat (mis: model, reset, vscode, scan, preview)..."
+          class="flex-1 bg-transparent text-sm text-slate-100 placeholder-slate-500 focus:outline-none font-sans"
+          oninput="filterCommandPalette(this.value)"
+          onkeydown="handleCommandKey(event)"
+        />
+        <kbd class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 font-mono">ESC</kbd>
+      </div>
+      <div id="cmdPaletteResults" class="p-2 max-h-80 overflow-y-auto space-y-1 font-sans text-xs">
+        <!-- Rendered items -->
+      </div>
+      <div class="p-2 border-t border-slate-800/80 bg-slate-950/80 flex items-center justify-between text-[11px] text-slate-500 font-mono px-4">
+        <span>Gunakan panah ↑ ↓ untuk navigasi, Enter untuk pilih</span>
+        <span class="text-cyan-400 font-bold">SUPER MATRIX</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- Main App Scripts -->
+  <script src="/static/js/dag_renderer.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "virtual_iot_lab",
+  "version": "1.0.0",
+  "displayName": "Virtual IoT & ESP32 Lab",
+  "description": "Simulated hardware lab: virtual ESP32 relay, virtual DHT22 temperature sensor, and MQTT telemetry generator.",
+  "category": "hardware",
+  "author": "Super Agent Core",
+  "risk": "low",
+  "permissions": ["network:mqtt", "local:simulator"]
+}

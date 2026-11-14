@@ -1,0 +1,10 @@
+{
+  "name": "crypto_watcher",
+  "version": "1.0.0",
+  "displayName": "Crypto & Market Watcher",
+  "description": "Read-only EVM balance inspection, crypto price tracking, and token analytics without exposing private keys.",
+  "category": "finance",
+  "author": "Super Agent Core",
+  "risk": "low",
+  "permissions": ["network:http"]
+}
