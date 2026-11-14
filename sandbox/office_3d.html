@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jetschool AI Virtual Office 3D - Super Agent Visualizer</title>
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- OrbitControls -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body {
+      background-color: #050814;
+      color: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #webgl-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* TOP GLASS HUD */
+    .top-bar {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      right: 20px;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+    .hud-chip {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 10px 18px;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .hud-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+    }
+    .hud-sub {
+      font-size: 11px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* FLOOR SELECTOR CONTROLS (LEFT ELEVATOR) */
+    .elevator-dock {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      padding: 14px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+    .elevator-dock .label {
+      font-size: 9px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #64748b;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+    .floor-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #94a3b8;
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .floor-btn span {
+      font-size: 8px;
+      font-weight: 600;
+      opacity: 0.7;
+    }
+    .floor-btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: scale(1.05);
+    }
+    .floor-btn.active {
+      background: linear-gradient(135deg, #0284c7 0%, #6366f1 100%);
+      color: #ffffff;
+      border-color: #38bdf8;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+      transform: scale(1.08);
+    }
+
+    /* RIGHT AGENT LIVE DRAWER / MODAL */
+    .agent-card {
+      position: absolute;
+      right: 20px;
+      top: 80px;
+      width: 320px;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 20px;
+      padding: 18px;
+      z-index: 10;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(56, 189, 248, 0.15);
+      transition: all 0.3s ease;
+      display: none;
+    }
+    .agent-card.visible {
+      display: block;
+      animation: slideInRight 0.3s ease forwards;
+    }
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .agent-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .agent-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .agent-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .agent-role {
+      font-size: 11px;
+      color: #38bdf8;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .agent-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .agent-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .agent-task-box {
+      background: rgba(2, 6, 23, 0.6);
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      margin-bottom: 12px;
+    }
+    .task-label {
+      font-size: 10px;
+      color: #64748b;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .task-text {
+      font-size: 12px;
+      color: #cbd5e1;
+      line-height: 1.45;
+    }
+    .agent-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .agent-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .agent-btn.primary {
+      background: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%);
+      color: #fff;
+    }
+    .agent-btn.primary:hover {
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+    }
+    .agent-btn.secondary {
+      background: rgba(51, 65, 85, 0.5);
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .agent-btn.secondary:hover {
+      background: rgba(51, 65, 85, 0.8);
+      color: #fff;
+    }
+
+    /* BOTTOM NAV / CONTROLS HINT */
+    .bottom-hint {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 9999px;
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 11px;
+      color: #94a3b8;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+    .bottom-hint kbd {
+      background: rgba(51, 65, 85, 0.6);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 10px;
+    }
+
+    /* FLOATING LABEL IN 3D WORLD */
+    .agent-tag {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #e2e8f0;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.2s;
+      z-index: 5;
+    }
+    .agent-tag::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 5px 5px 0;
+      border-style: solid;
+      border-color: rgba(56, 189, 248, 0.4) transparent transparent;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D WebGL Canvas Container -->
+  <div id="webgl-canvas"></div>
+
+  <!-- TOP HEADER HUD -->
+  <div class="top-bar">
+    <div class="hud-chip">
+      <div style="width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, #0284c7, #818cf8); display: flex; align-items: center; justify-content: center;">
+        <i class="fa-solid fa-building text-white" style="font-size: 13px;"></i>
+      </div>
+      <div>
+        <div class="hud-title">Jetschool Virtual Office 3D</div>
+        <div class="hud-sub"><span id="activeFloorName">Lantai 2: Jetschool Academy</span> • 0 Human Operations</div>
+      </div>
+    </div>
+
+    <div class="hud-chip">
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 10px #10b981;"></div>
+      <div class="hud-sub" style="color: #cbd5e1;"><strong style="color: #38bdf8;">6 AI Agents</strong> Online 24/7</div>
+      <button onclick="toggleAutoRotate()" id="btnAutoRotate" style="background: rgba(51, 65, 85, 0.6); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; padding: 4px 8px; border-radius: 8px; font-size: 10px; cursor: pointer; margin-left: 6px;">
+        <i class="fa-solid fa-arrows-rotate"></i> Auto-Cam
+      </button>
+    </div>
+  </div>
+
+  <!-- ELEVATOR DOCK (FLOOR SELECTION) -->
+  <div class="elevator-dock">
+    <div class="label">Lift</div>
+    <button class="floor-btn" onclick="goToFloor(4)" id="floorBtn4">
+      R
+      <span>Roof</span>
+    </button>
+    <button class="floor-btn" onclick="goToFloor(3)" id="floorBtn3">
+      3F
+      <span>Tech</span>
+    </button>
+    <button class="floor-btn active" onclick="goToFloor(2)" id="floorBtn2">
+      2F
+      <span>Team</span>
+    </button>
+    <button class="floor-btn" onclick="goToFloor(1)" id="floorBtn1">
+      1F
+      <span>Lobby</span>
+    </button>
+  </div>
+
+  <!-- AGENT POPUP INSPECTOR DRAWER -->
+  <div class="agent-card" id="agentCard">
+    <div class="agent-header">
+      <div class="agent-avatar" id="agentAvatar" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6);">
+        <i class="fa-solid fa-headset" id="agentIcon"></i>
+      </div>
+      <div>
+        <div class="agent-name" id="agentName">Customer Support AI</div>
+        <div class="agent-role" id="agentRole">AGENT #01 • TIER-1 CS</div>
+      </div>
+      <button onclick="closeAgentCard()" style="background: transparent; border: none; color: #64748b; font-size: 16px; margin-left: auto; cursor: pointer;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="agent-status-badge">
+      <span class="agent-status-dot"></span>
+      <span id="agentStatus">Status: Sedang Membalas Chat (Aktif)</span>
+    </div>
+
+    <div class="agent-task-box">
+      <div class="task-label">Aktivitas Real-Time:</div>
+      <div class="task-text" id="agentTask">
+        Merespons pertanyaan calon murid seputar kelas Zero Human Company via WhatsApp & Website dalam < 3 detik.
+      </div>
+    </div>
+
+    <div class="agent-task-box" style="margin-bottom: 16px;">
+      <div class="task-label">Output & Metrik:</div>
+      <div class="task-text" id="agentMetric" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #38bdf8;">
+        • 142 Tiket terselesaikan hari ini<br>
+        • Tingkat kepuasan: 98.4%<br>
+        • Integrasi: WhatsApp, Discord, CRM
+      </div>
+    </div>
+
+    <div class="agent-actions">
+      <button class="agent-btn primary" onclick="interactWithAgent()">
+        <i class="fa-solid fa-terminal"></i> Buka Prompt AI
+      </button>
+      <button class="agent-btn secondary" onclick="focusOnAgent()">
+        <i class="fa-solid fa-crosshairs"></i> Zoom In
+      </button>
+    </div>
+  </div>
+
+  <!-- FLOATING 3D DOM LABELS CONTAINER -->
+  <div id="labels-container"></div>
+
+  <!-- BOTTOM HINT -->
+  <div class="bottom-hint">
+    <span><kbd>Klik + Tarik</kbd> Putar Sudut 3D</span>
+    <span><kbd>Scroll</kbd> Zoom In / Out</span>
+    <span><kbd>Klik Karakter</kbd> Inspeksi Karyawan AI</span>
+  </div>
+
+  <script>
+    // --- DATA DEFINITION: 4 FLOORS & 6 AI AGENTS ---
+    const FLOOR_DATA = {
+      1: {
+        name: "Lantai 1: Lobby & Lounge",
+        height: 0,
+        desc: "Resepsionis virtual, lounge tamu, dan showcase portofolio Jetschool.",
+        cameraPos: { x: 0, y: 12, z: 24 },
+        targetPos: { x: 0, y: 1, z: 0 }
+      },
+      2: {
+        name: "Lantai 2: Jetschool Academy (Zero Human Company)",
+        height: 10,
+        desc: "Markas 6 Karyawan AI yang menjalankan operasional bisnis 24 jam nonstop.",
+        cameraPos: { x: 0, y: 22, z: 24 },
+        targetPos: { x: 0, y: 11, z: 0 }
+      },
+      3: {
+        name: "Lantai 3: Tech Lab & Autonomous Dev Studio",
+        height: 20,
+        desc: "Studio pengembangan website interaktif 3D, integrasi LLM, dan cloud automation.",
+        cameraPos: { x: 0, y: 32, z: 24 },
+        targetPos: { x: 0, y: 21, z: 0 }
+      },
+      4: {
+        name: "Lantai 4: Rooftop Garden & Solar Deck",
+        height: 30,
+        desc: "Area santai futuristik bertenaga surya untuk simulasi energi mandiri.",
+        cameraPos: { x: 0, y: 42, z: 24 },
+        targetPos: { x: 0, y: 31, z: 0 }
+      }
+    };
+
+    const AGENTS = [
+      {
+        id: "cs",
+        name: "CS Agent (Aria)",
+        role: "CUSTOMER RELATIONS & TICKETING",
+        floor: 2,
+        pos: { x: -6, y: 11, z: -4 },
+        color: 0x38bdf8,
+        icon: "fa-headset",
+        gradient: "linear-gradient(135deg, #0284c7, #38bdf8)",
+        status: "Merespons Chat (Aktif 24/7)",
+        task: "Menangani pendaftaran kursus, pertanyaan teknis via WhatsApp & Livechat tanpa antrean.",
+        metrics: "• 214 Chat terjawab hari ini\n• Response time: 1.8s\n• Resolved: 99.1%"
+      },
+      {
+        id: "sales",
+        name: "Sales Agent (Vektor)",
+        role: "LEAD CLOSING & FOLLOW-UP",
+        floor: 2,
+        pos: { x: 0, y: 11, z: -5 },
+        color: 0x10b981,
+        icon: "fa-chart-line",
+        gradient: "linear-gradient(135deg, #059669, #10b981)",
+        status: "Lead Prospecting & Scheduling",
+        task: "Mengklasifikasikan prospek baru, mengirim penawaran personal, dan booking demo otomatis.",
+        metrics: "• 48 Prospek qualified\n• Conversion rate: 24.6%\n• CRM: Salesforce & HubSpot"
+      },
+      {
+        id: "marketing",
+        name: "Marketing Studio AI (Krea)",
+        role: "CONTENT & CAMPAIGN CREATOR",
+        floor: 2,
+        pos: { x: 6, y: 11, z: -4 },
+        color: 0xf43f5e,
+        icon: "fa-wand-magic-sparkles",
+        gradient: "linear-gradient(135deg, #e11d48, #f43f5e)",
+        status: "Memproduksi Konten Visual & SEO",
+        task: "Generate ide konten Instagram Reels, copywriting promosi, dan optimasi artikel harian.",
+        metrics: "• 12 Feed & Reel terjadwal\n• Organik traffic: +34.2%\n• Multi-platform auto-poster"
+      },
+      {
+        id: "dev",
+        name: "Developer Agent (Nexus)",
+        role: "FULL-STACK AUTOMATION DEV",
+        floor: 2,
+        pos: { x: -6, y: 11, z: 3 },
+        color: 0x8b5cf6,
+        icon: "fa-laptop-code",
+        gradient: "linear-gradient(135deg, #7c3aed, #8b5cf6)",
+        status: "Refactoring & CI/CD Pipeline",
+        task: "Membuat microservices, integrasi API AI, memantau server, dan deploy kode ke staging.",
+        metrics: "• 18 Commit otomatis hari ini\n• Uptime: 99.98%\n• Auto Test Coverage: 92%"
+      },
+      {
+        id: "admin",
+        name: "Admin & Finance (Ledger)",
+        role: "FINANCIAL RECONCILIATION",
+        floor: 2,
+        pos: { x: 0, y: 11, z: 3 },
+        color: 0xf59e0b,
+        icon: "fa-file-invoice-dollar",
+        gradient: "linear-gradient(135deg, #d97706, #f59e0b)",
+        status: "Rekap Invoice & Pembayaran",
+        task: "Verifikasi bukti transfer bank, pembukuan jurnal otomatis, dan rekonsiliasi kas realtime.",
+        metrics: "• 86 Transaksi terverifikasi\n• Error rate: 0.00%\n• Payment Gateway Sync: OK"
+      },
+      {
+        id: "report",
+        name: "Executive Report AI (Atlas)",
+        role: "BUSINESS INTELLIGENCE & KPI",
+        floor: 2,
+        pos: { x: 6, y: 11, z: 3 },
+        color: 0x06b6d4,
+        icon: "fa-chart-pie",
+        gradient: "linear-gradient(135deg, #0891b2, #06b6d4)",
+        status: "Agregasi Metrik Eksekutif",
+        task: "Menganalisis pendapatan, performa tim AI per jam, dan mengirim ringkasan ke Telegram Founder.",
+        metrics: "• Daily Digest: Disiapkan\n• ROI otomasi: 8.4x\n• Alert anomali: Aman"
+      }
+    ];
+
+    // --- THREE.JS INITIALIZATION ---
+    let scene, camera, renderer, controls;
+    let agentMeshes = [];
+    let currentFloor = 2;
+    let isAutoRotating = false;
+    let selectedAgent = null;
+
+    const container = document.getElementById('webgl-canvas');
+    const labelsContainer = document.getElementById('labels-container');
+
+    function init3D() {
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x050814);
+      scene.fog = new THREE.FogExp2(0x050814, 0.015);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const startFloor = FLOOR_DATA[2];
+      camera.position.set(startFloor.cameraPos.x, startFloor.cameraPos.y, startFloor.cameraPos.z);
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      // Controls
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.target.set(startFloor.targetPos.x, startFloor.targetPos.y, startFloor.targetPos.z);
+      controls.maxPolarAngle = Math.PI / 2.05; // Don't go below ground
+      controls.minDistance = 6;
+      controls.maxDistance = 65;
+
+      // Lighting
+      setupLighting();
+
+      // Build Building Architecture
+      buildBuilding();
+
+      // Spawn AI Agents
+      spawnAgents();
+
+      // Raycasting for click events
+      setupInteractions();
+
+      // Resize event
+      window.addEventListener('resize', onWindowResize);
+
+      // Start Loop
+      animate();
+    }
+
+    function setupLighting() {
+      const ambientLight = new THREE.AmbientLight(0x94a3b8, 0.7);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      dirLight.position.set(20, 45, 20);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 10;
+      dirLight.shadow.camera.far = 80;
+      dirLight.shadow.camera.left = -20;
+      dirLight.shadow.camera.right = 20;
+      dirLight.shadow.camera.top = 20;
+      dirLight.shadow.camera.bottom = -20;
+      scene.add(dirLight);
+
+      // Cyber Cyan & Purple Accent Lights
+      const cyanPoint = new THREE.PointLight(0x06b6d4, 1.5, 30);
+      cyanPoint.position.set(-8, 15, -8);
+      scene.add(cyanPoint);
+
+      const purplePoint = new THREE.PointLight(0xa855f7, 1.5, 30);
+      purplePoint.position.set(8, 15, 8);
+      scene.add(purplePoint);
+
+      // Grid helper for floor grounding
+      const grid = new THREE.GridHelper(60, 40, 0x1e293b, 0x0f172a);
+      grid.position.y = -0.1;
+      scene.add(grid);
+    }
+
+    function buildBuilding() {
+      const floorCount = 4;
+      const floorWidth = 22;
+      const floorDepth = 18;
+      const floorHeight = 10;
+
+      for (let i = 1; i <= floorCount; i++) {
+        const floorY = (i - 1) * floorHeight;
+
+        // Floor slab
+        const slabGeo = new THREE.BoxGeometry(floorWidth, 0.4, floorDepth);
+        const slabMat = new THREE.MeshStandardMaterial({
+          color: i === 2 ? 0x0f172a : 0x0b1120,
+          roughness: 0.4,
+          metalness: 0.2
+        });
+        const slab = new THREE.Mesh(slabGeo, slabMat);
+        slab.position.set(0, floorY, 0);
+        slab.receiveShadow = true;
+        scene.add(slab);
+
+        // Floor Grid Lines
+        const floorGrid = new THREE.GridHelper(floorWidth, 12, 0x38bdf8, 0x1e293b);
+        floorGrid.position.set(0, floorY + 0.21, 0);
+        scene.add(floorGrid);
+
+        // Glass boundary railing
+        const glassGeo = new THREE.BoxGeometry(floorWidth, 1.2, floorDepth);
+        const glassMat = new THREE.MeshPhysicalMaterial({
+          color: 0x38bdf8,
+          transparent: true,
+          opacity: 0.15,
+          roughness: 0.1,
+          transmission: 0.6,
+          thickness: 0.5
+        });
+        const glass = new THREE.Mesh(glassGeo, glassMat);
+        glass.position.set(0, floorY + 0.6, 0);
+        scene.add(glass);
+
+        // 4 Corner Pillars
+        const pillarGeo = new THREE.CylinderGeometry(0.3, 0.3, floorHeight, 16);
+        const pillarMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.2 });
+        const corners = [
+          [-floorWidth/2 + 0.5, -floorDepth/2 + 0.5],
+          [floorWidth/2 - 0.5, -floorDepth/2 + 0.5],
+          [-floorWidth/2 + 0.5, floorDepth/2 - 0.5],
+          [floorWidth/2 - 0.5, floorDepth/2 - 0.5]
+        ];
+        corners.forEach(([cx, cz]) => {
+          const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+          pillar.position.set(cx, floorY + floorHeight/2, cz);
+          pillar.castShadow = true;
+          scene.add(pillar);
+        });
+
+        // Elevator Shaft (Back Core)
+        const shaftGeo = new THREE.BoxGeometry(4, floorHeight, 3);
+        const shaftMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.5, roughness: 0.5 });
+        const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+        shaft.position.set(0, floorY + floorHeight/2, -floorDepth/2 + 1.5);
+        scene.add(shaft);
+
+        // Interior Desks on Floor 2 (Academy)
+        if (i === 2) {
+          buildOfficeDesks(floorY);
+        }
+      }
+    }
+
+    function buildOfficeDesks(floorY) {
+      // Workstations for Agents
+      AGENTS.forEach(ag => {
+        // Table Desk
+        const deskGeo = new THREE.BoxGeometry(2.4, 0.1, 1.4);
+        const deskMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3 });
+        const desk = new THREE.Mesh(deskGeo, deskMat);
+        desk.position.set(ag.pos.x, floorY + 0.8, ag.pos.z);
+        desk.castShadow = true;
+        scene.add(desk);
+
+        // Desk Legs
+        const legGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.8, 8);
+        const legMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 });
+        [[-1, -0.5], [1, -0.5], [-1, 0.5], [1, 0.5]].forEach(([lx, lz]) => {
+          const leg = new THREE.Mesh(legGeo, legMat);
+          leg.position.set(ag.pos.x + lx, floorY + 0.4, ag.pos.z + lz);
+          scene.add(leg);
+        });
+
+        // Computer Monitor with Glowing Screen
+        const monStand = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.3, 0.1), new THREE.MeshStandardMaterial({ color: 0x475569 }));
+        monStand.position.set(ag.pos.x, floorY + 1.0, ag.pos.z - 0.3);
+        scene.add(monStand);
+
+        const screenGeo = new THREE.BoxGeometry(1.2, 0.7, 0.05);
+        const screenMat = new THREE.MeshStandardMaterial({
+          color: ag.color,
+          emissive: ag.color,
+          emissiveIntensity: 0.6
+        });
+        const screen = new THREE.Mesh(screenGeo, screenMat);
+        screen.position.set(ag.pos.x, floorY + 1.35, ag.pos.z - 0.3);
+        scene.add(screen);
+
+        // Office Chair
+        const chairGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.1, 16);
+        const chairMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+        const chair = new THREE.Mesh(chairGeo, chairMat);
+        chair.position.set(ag.pos.x, floorY + 0.5, ag.pos.z + 0.8);
+        scene.add(chair);
+      });
+    }
+
+    function spawnAgents() {
+      AGENTS.forEach((ag, idx) => {
+        const group = new THREE.Group();
+        group.position.set(ag.pos.x, ag.pos.y, ag.pos.z + 0.8);
+        group.userData = ag;
+
+        // Agent Glowing Avatar Sphere (Head)
+        const headGeo = new THREE.SphereGeometry(0.45, 32, 32);
+        const headMat = new THREE.MeshStandardMaterial({
+          color: ag.color,
+          emissive: ag.color,
+          emissiveIntensity: 0.5,
+          roughness: 0.2,
+          metalness: 0.8
+        });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.y = 1.6;
+        head.castShadow = true;
+        group.add(head);
+
+        // Visor / Eyes
+        const visorGeo = new THREE.BoxGeometry(0.5, 0.12, 0.2);
+        const visorMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const visor = new THREE.Mesh(visorGeo, visorMat);
+        visor.position.set(0, 1.65, 0.35);
+        group.add(visor);
+
+        // Robotic Body Torso
+        const bodyGeo = new THREE.CylinderGeometry(0.35, 0.4, 0.8, 16);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.4 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.9;
+        body.castShadow = true;
+        group.add(body);
+
+        // Pulsing Ring at base
+        const ringGeo = new THREE.RingGeometry(0.6, 0.8, 32);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: ag.color,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.7
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.y = -0.98;
+        group.add(ring);
+        group.userData.ring = ring;
+
+        scene.add(group);
+        agentMeshes.push(group);
+
+        // Create HTML Floating Tag
+        createAgentDOMTag(ag, idx);
+      });
+    }
+
+    function createAgentDOMTag(ag, idx) {
+      const tag = document.createElement('div');
+      tag.className = 'agent-tag';
+      tag.id = `tag-${ag.id}`;
+      tag.innerHTML = `<i class="fa-solid ${ag.icon}" style="color:${ag.color.toString(16).padStart(6, '0')}"></i> ${ag.name.split(' ')[0]}`;
+      labelsContainer.appendChild(tag);
+      ag.domTag = tag;
+    }
+
+    function setupInteractions() {
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      window.addEventListener('pointerdown', (e) => {
+        // Prevent clicking when interacting with UI docks
+        if (e.target.closest('.hud-chip') || e.target.closest('.elevator-dock') || e.target.closest('.agent-card') || e.target.closest('.bottom-hint')) {
+          return;
+        }
+
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(agentMeshes, true);
+
+        if (intersects.length > 0) {
+          let topGroup = intersects[0].object;
+          while (topGroup.parent && !topGroup.userData.id) {
+            topGroup = topGroup.parent;
+          }
+          if (topGroup && topGroup.userData.id) {
+            openAgentCard(topGroup.userData);
+          }
+        }
+      });
+    }
+
+    function openAgentCard(agent) {
+      selectedAgent = agent;
+      const card = document.getElementById('agentCard');
+      document.getElementById('agentName').innerText = agent.name;
+      document.getElementById('agentRole').innerText = agent.role;
+      document.getElementById('agentRole').style.color = '#' + agent.color.toString(16).padStart(6, '0');
+      document.getElementById('agentStatus').innerText = agent.status;
+      document.getElementById('agentTask').innerText = agent.task;
+      document.getElementById('agentMetric').innerHTML = agent.metrics.replace(/\n/g, '<br>');
+      document.getElementById('agentAvatar').style.background = agent.gradient;
+      document.getElementById('agentIcon').className = `fa-solid ${agent.icon}`;
+
+      card.classList.add('visible');
+
+      // Smooth focus camera on agent
+      tweenCameraTo({
+        x: agent.pos.x,
+        y: agent.pos.y + 2,
+        z: agent.pos.z + 5
+      }, {
+        x: agent.pos.x,
+        y: agent.pos.y + 1,
+        z: agent.pos.z
+      });
+    }
+
+    function closeAgentCard() {
+      document.getElementById('agentCard').classList.remove('visible');
+      selectedAgent = null;
+    }
+
+    function focusOnAgent() {
+      if (selectedAgent) {
+        tweenCameraTo({
+          x: selectedAgent.pos.x,
+          y: selectedAgent.pos.y + 1.8,
+          z: selectedAgent.pos.z + 3.5
+        }, {
+          x: selectedAgent.pos.x,
+          y: selectedAgent.pos.y + 1.2,
+          z: selectedAgent.pos.z
+        });
+      }
+    }
+
+    function interactWithAgent() {
+      if (!selectedAgent) return;
+      alert(`Membuka sesi kolaborasi langsung dengan [${selectedAgent.name}]. Agen ini siap dipanggil via Super Agent Chat!`);
+    }
+
+    function goToFloor(floorNum) {
+      currentFloor = floorNum;
+      document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`floorBtn${floorNum}`).classList.add('active');
+
+      const data = FLOOR_DATA[floorNum];
+      document.getElementById('activeFloorName').innerText = data.name;
+
+      closeAgentCard();
+
+      tweenCameraTo(data.cameraPos, data.targetPos);
+    }
+
+    function toggleAutoRotate() {
+      isAutoRotating = !isAutoRotating;
+      controls.autoRotate = isAutoRotating;
+      controls.autoRotateSpeed = 1.2;
+      const btn = document.getElementById('btnAutoRotate');
+      btn.style.color = isAutoRotating ? '#38bdf8' : '#94a3b8';
+      btn.style.borderColor = isAutoRotating ? '#38bdf8' : 'rgba(255,255,255,0.1)';
+    }
+
+    // Camera animation interpolator
+    let camTween = null;
+    function tweenCameraTo(targetCam, targetLookAt, duration = 1200) {
+      const startCam = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
+      const startLook = { x: controls.target.x, y: controls.target.y, z: controls.target.z };
+      const startTime = performance.now();
+
+      function updateTween(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = 0.5 - Math.cos(progress * Math.PI) / 2; // Ease in-out
+
+        camera.position.x = startCam.x + (targetCam.x - startCam.x) * ease;
+        camera.position.y = startCam.y + (targetCam.y - startCam.y) * ease;
+        camera.position.z = startCam.z + (targetCam.z - startCam.z) * ease;
+
+        controls.target.x = startLook.x + (targetLookAt.x - startLook.x) * ease;
+        controls.target.y = startLook.y + (targetLookAt.y - startLook.y) * ease;
+        controls.target.z = startLook.z + (targetLookAt.z - startLook.z) * ease;
+
+        if (progress < 1) {
+          requestAnimationFrame(updateTween);
+        }
+      }
+      requestAnimationFrame(updateTween);
+    }
+
+    // Update 2D Floating DOM Tags Positions
+    function updateDOMTags() {
+      const tempV = new THREE.Vector3();
+      AGENTS.forEach(ag => {
+        if (!ag.domTag) return;
+        if (currentFloor !== ag.floor) {
+          ag.domTag.style.display = 'none';
+          return;
+        }
+
+        tempV.set(ag.pos.x, ag.pos.y + 2.4, ag.pos.z + 0.8);
+        tempV.project(camera);
+
+        // Check if behind camera
+        if (tempV.z > 1) {
+          ag.domTag.style.display = 'none';
+          return;
+        }
+
+        const x = (tempV.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-(tempV.y * 0.5) + 0.5) * window.innerHeight;
+
+        ag.domTag.style.display = 'flex';
+        ag.domTag.style.transform = `translate(-50%, -100%) translate(${x}px, ${y}px)`;
+      });
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate(time) {
+      requestAnimationFrame(animate);
+
+      controls.update();
+
+      // Subtle idle animation for agent spheres & rings
+      const t = (time || 0) * 0.003;
+      agentMeshes.forEach((mesh, idx) => {
+        // Head bobbing
+        mesh.children[0].position.y = 1.6 + Math.sin(t + idx * 1.2) * 0.08;
+        mesh.children[1].position.y = 1.65 + Math.sin(t + idx * 1.2) * 0.08;
+        
+        // Ring pulsing scale
+        if (mesh.userData.ring) {
+          const s = 1 + Math.sin(t * 2 + idx) * 0.08;
+          mesh.userData.ring.scale.set(s, s, s);
+        }
+      });
+
+      updateDOMTags();
+
+      renderer.render(scene, camera);
+    }
+
+    // Launch
+    window.addEventListener('DOMContentLoaded', init3D);
+  </script>
+</body>
+</html>
